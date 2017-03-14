@@ -41,8 +41,8 @@ module U2F
     #   - +UserNotPresentError+:: if the user wasn't present during the authentication
     #   - +CounterTooLowError+:: if there is a counter mismatch between the registered one and the one in the response.
     #
-    def authenticate!(challenge, response, registration_public_key,
-                      registration_counter)
+    def authenticate!(response, registration_public_key, registration_counter)
+      challenge = yield response.client_data.challenge if block_given?
 
       # TODO: check that it's the correct key_handle as well
       unless challenge == response.client_data.challenge
@@ -100,13 +100,12 @@ module U2F
     #   - +ClientDataTypeError+:: if the response is of the wrong type
     #   - +AttestationSignatureError+:: if the registration failed
     #
-    def register!(challenges, response)
-      challenges = [challenges] unless challenges.is_a? Array
-      challenge = challenges.detect do |chg|
-        chg == response.client_data.challenge
-      end
+    def register!(response)
+      challenge = yield response.client_data.challenge if block_given?
 
-      fail UnmatchedChallengeError unless challenge
+      unless challenge == response.client_data.challenge
+        fail UnmatchedChallengeError
+      end
 
       fail ClientDataTypeError unless response.client_data.registration?
 
