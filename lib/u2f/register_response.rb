@@ -14,8 +14,10 @@ module U2F
 
     def self.load_from_json(json)
       # TODO: validate
-      data = JSON.parse(json)
+      from_hash(::JSON.parse(json))
+    end
 
+    def self.from_hash(data)
       if data['errorCode'] && data['errorCode'] > 0
         fail RegistrationError, :code => data['errorCode']
       end

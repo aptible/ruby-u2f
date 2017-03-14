@@ -3,7 +3,10 @@ module U2F
     attr_accessor :client_data, :client_data_json, :key_handle, :signature_data
 
     def self.load_from_json(json)
-      data = ::JSON.parse(json)
+      from_hash(::JSON.parse(json))
+    end
+
+    def self.from_hash(data)
       instance = new
       instance.client_data_json =
         ::U2F.urlsafe_decode64(data['clientData'])
