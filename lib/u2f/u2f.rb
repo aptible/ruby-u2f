@@ -42,18 +42,17 @@ module U2F
     #   - +CounterTooLowError+:: if there is a counter mismatch between the registered one and the one in the response.
     #
     def authenticate!(response, registration_public_key, registration_counter)
+      pem = U2F.public_key_pem(registration_public_key)
+
+      fail AuthenticationFailedError unless response.verify(app_id, pem)
+
       challenge = yield response.client_data.challenge if block_given?
 
-      # TODO: check that it's the correct key_handle as well
       unless challenge == response.client_data.challenge
         fail NoMatchingRequestError
       end
 
       fail ClientDataTypeError unless response.client_data.authentication?
-
-      pem = U2F.public_key_pem(registration_public_key)
-
-      fail AuthenticationFailedError unless response.verify(app_id, pem)
 
       fail UserNotPresentError unless response.user_present?
 
@@ -101,14 +100,6 @@ module U2F
     #   - +AttestationSignatureError+:: if the registration failed
     #
     def register!(response)
-      challenge = yield response.client_data.challenge if block_given?
-
-      unless challenge == response.client_data.challenge
-        fail UnmatchedChallengeError
-      end
-
-      fail ClientDataTypeError unless response.client_data.registration?
-
       # Validate public key
       U2F.public_key_pem(response.public_key_raw)
 
@@ -118,6 +109,14 @@ module U2F
       # end
 
       fail AttestationSignatureError unless response.verify(app_id)
+
+      challenge = yield response.client_data.challenge if block_given?
+
+      unless challenge == response.client_data.challenge
+        fail UnmatchedChallengeError
+      end
+
+      fail ClientDataTypeError unless response.client_data.registration?
 
       registration = Registration.new(
         response.key_handle,

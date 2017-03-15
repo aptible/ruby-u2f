@@ -1,35 +1,52 @@
 module U2F
   class SignResponse
-    attr_accessor :client_data, :client_data_json, :key_handle, :signature_data
+    attr_reader :key_handle, :client_data_json, :client_data
+    attr_reader :signature_data_raw
+
+    def initialize(key_handle, client_data_encoded, signature_data_encoded)
+      unless key_handle.is_a?(String)
+        fail AttestationDecodeError, 'Invalid keyHandle: Not a string'
+      end
+      @key_handle = key_handle
+
+      begin
+        unless client_data_encoded.is_a?(String)
+          fail AttestationDecodeError, 'Not a string'
+        end
+        @client_data_json = ::U2F.urlsafe_decode64(client_data_encoded)
+        @client_data = ClientData.load_from_json(client_data_json)
+      rescue AttestationDecodeError => e
+        raise AttestationDecodeError, "Invalid clientData: #{e.message}"
+      end
+
+      unless signature_data_encoded.is_a?(String)
+        fail AttestationDecodeError, 'Invalid signatureData: Not a string'
+      end
+      @signature_data_raw = ::U2F.urlsafe_decode64(signature_data_encoded)
+    end
 
     def self.load_from_json(json)
       from_hash(::JSON.parse(json))
+    rescue JSON::ParserError => e
+      raise AttestationDecodeError, "Invalid JSON: #{e.message}"
     end
 
     def self.from_hash(data)
-      instance = new
-      instance.client_data_json =
-        ::U2F.urlsafe_decode64(data['clientData'])
-      instance.client_data =
-        ClientData.load_from_json(instance.client_data_json)
-      instance.key_handle = data['keyHandle']
-      instance.signature_data =
-        ::U2F.urlsafe_decode64(data['signatureData'])
-      instance
+      new(data['keyHandle'], data['clientData'], data['signatureData'])
     end
 
     ##
     # Counter value that the U2F token increments every time it performs an
     # authentication operation
     def counter
-      signature_data.byteslice(1, 4).unpack('N').first
+      signature_data_raw.byteslice(1, 4).unpack('N').first
     end
 
     ##
     # signature is to be verified using the public key obtained during
     # registration.
     def signature
-      signature_data.byteslice(5..-1)
+      signature_data_raw.byteslice(5..-1)
     end
 
     # Bit 0 being set to 1 indicates that the user is present. A different value
@@ -39,7 +56,7 @@ module U2F
     ##
     # If user presence was verified
     def user_present?
-      byte = signature_data.byteslice(0).unpack('C').first
+      byte = signature_data_raw.byteslice(0).unpack('C').first
       byte & USER_PRESENCE_MASK == 1
     end
 
@@ -49,7 +66,7 @@ module U2F
     def verify(app_id, public_key_pem)
       data = [
         ::U2F::DIGEST.digest(app_id),
-        signature_data.byteslice(0, 5),
+        signature_data_raw.byteslice(0, 5),
         ::U2F::DIGEST.digest(client_data_json)
       ].join
 

@@ -4,7 +4,7 @@ module U2F
   # See chapter 4.3:
   # http://fidoalliance.org/specs/fido-u2f-raw-message-formats-v1.0-rd-20141008.pdf
   class RegisterResponse
-    attr_accessor :client_data, :client_data_json, :registration_data_raw
+    attr_reader :client_data, :client_data_json, :registration_data_raw
 
     PUBLIC_KEY_OFFSET = 1
     PUBLIC_KEY_LENGTH = 65
@@ -12,24 +12,34 @@ module U2F
     KEY_HANDLE_LENGTH_OFFSET = PUBLIC_KEY_OFFSET + PUBLIC_KEY_LENGTH
     KEY_HANDLE_OFFSET = KEY_HANDLE_LENGTH_OFFSET + KEY_HANDLE_LENGTH_LENGTH
 
+    def initialize(client_data_encoded, registration_data_encoded)
+      begin
+        unless client_data_encoded.is_a?(String)
+          fail AttestationDecodeError, 'Must be a string'
+        end
+        @client_data_json = ::U2F.urlsafe_decode64(client_data_encoded)
+        @client_data = ClientData.load_from_json(client_data_json)
+      rescue AttestationDecodeError => e
+        raise AttestationDecodeError, "Invalid clientData: #{e.message}"
+      end
+
+      unless registration_data_encoded.is_a?(String)
+        fail AttestationDecodeError, 'Invalid registrationData: Not a string'
+      end
+      @registration_data_raw = ::U2F.urlsafe_decode64(registration_data_encoded)
+    end
+
     def self.load_from_json(json)
-      # TODO: validate
       from_hash(::JSON.parse(json))
+    rescue JSON::ParserError => e
+      raise AttestationDecodeError, "Invalid JSON: #{e.message}"
     end
 
     def self.from_hash(data)
       if data['errorCode'] && data['errorCode'] > 0
         fail RegistrationError, :code => data['errorCode']
       end
-
-      instance = new
-      instance.client_data_json =
-        ::U2F.urlsafe_decode64(data['clientData'])
-      instance.client_data =
-        ClientData.load_from_json(instance.client_data_json)
-      instance.registration_data_raw =
-        ::U2F.urlsafe_decode64(data['registrationData'])
-      instance
+      new(data['clientData'], data['registrationData'])
     end
 
     ##
