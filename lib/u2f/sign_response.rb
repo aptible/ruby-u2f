@@ -46,7 +46,7 @@ module U2F
     # signature is to be verified using the public key obtained during
     # registration.
     def signature
-      signature_data_raw.byteslice(5..-1)
+      signature_data_raw.byteslice(5..-1) || ''
     end
 
     # Bit 0 being set to 1 indicates that the user is present. A different value
