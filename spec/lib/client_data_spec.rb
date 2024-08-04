@@ -7,11 +7,7 @@ describe U2F::ClientData do
   let(:registration_type) { U2F::ClientData::REGISTRATION_TYP }
   let(:authentication_type) { U2F::ClientData::AUTHENTICATION_TYP }
 
-  let(:client_data) do
-    described_class.new.tap do |cd|
-      cd.typ = type
-    end
-  end
+  let(:client_data) { U2F::ClientData.new(type, '', '') }
 
   describe '#registration?' do
     subject { client_data.registration? }

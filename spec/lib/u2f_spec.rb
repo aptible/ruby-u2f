@@ -39,7 +39,10 @@ describe U2F do
     let(:counter) { registration.counter }
     let(:reg_public_key) { registration.public_key }
     let(:u2f_authenticate) do
-      u2f.authenticate!(auth_challenge, sign_response, reg_public_key, counter)
+      u2f.authenticate!(sign_response, reg_public_key, counter) do |c|
+        expect(c).to eq(sign_response.client_data.challenge)
+        auth_challenge
+      end
     end
 
     context 'with correct parameters' do
@@ -83,18 +86,16 @@ describe U2F do
   end
 
   describe '#register!' do
+    def register
+      u2f.register!(register_response) do |c|
+        expect(c).to eq(register_response.client_data.challenge)
+        auth_challenge
+      end
+    end
+
     context 'with correct registration data' do
       it 'returns a registration' do
-        reg = nil
-        expect do
-          reg = u2f.register!(auth_challenge, register_response)
-        end.not_to raise_error
-        expect(reg.key_handle).to eq key_handle
-      end
-
-      it 'accepts an array of challenges' do
-        reg = u2f.register!(['another-challenge', auth_challenge], register_response)
-        expect(reg).to be_a described_class::Registration
+        expect(register.key_handle).to eq key_handle
       end
     end
 
@@ -102,9 +103,7 @@ describe U2F do
       let(:auth_challenge) { 'non-matching' }
 
       it 'raises an UnmatchedChallengeError' do
-        expect do
-          u2f.register!(auth_challenge, register_response)
-        end.to raise_error(described_class::UnmatchedChallengeError)
+        expect { register }.to raise_error(U2F::UnmatchedChallengeError)
       end
     end
   end

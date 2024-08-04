@@ -11,6 +11,18 @@ module U2F
     attr_accessor :typ, :challenge, :origin
     alias type typ
 
+    def initialize(typ, challenge, origin)
+      @typ = typ
+      @challenge = challenge
+      @origin = origin
+
+      %i(typ challenge origin).each do |sym|
+        val = send(sym)
+        next if val.is_a?(String)
+        fail AttestationDecodeError, "Invalid #{sym}"
+      end
+    end
+
     def registration?
       typ == REGISTRATION_TYP
     end
@@ -20,12 +32,13 @@ module U2F
     end
 
     def self.load_from_json(json)
-      client_data = ::JSON.parse(json)
-      new.tap do |instance|
-        instance.typ = client_data['typ']
-        instance.challenge = client_data['challenge']
-        instance.origin = client_data['origin']
-      end
+      from_hash(::JSON.parse(json))
+      rescue JSON::ParserError => e
+      raise AttestationDecodeError, "Invalid JSON: #{e.message}"
+    end
+
+    def self.from_hash(data)
+      new(data['typ'], data['challenge'], data['origin'])
     end
   end
 end
