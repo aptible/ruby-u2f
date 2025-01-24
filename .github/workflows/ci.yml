@@ -25,6 +25,7 @@ jobs:
         with:
           ruby-version: ${{ matrix.RUBY_VERSION }}
           bundler: 2.3.27
+          rubygems: 3.2.3
 
       - name: Bundle install
         run: bundle install
