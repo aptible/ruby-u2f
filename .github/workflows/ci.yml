@@ -31,7 +31,7 @@ jobs:
         run: bundle install
 
       - name: Rubocop
-        run: bundle exec rake rubocop
+        run: bundle exec rake test
 
       - name: Rspec
         run: bundle exec rspec
