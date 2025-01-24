@@ -33,6 +33,7 @@ module U2F
 
     def self.load_from_json(json)
       # TODO: validate
+
       from_hash(::JSON.parse(json))
     rescue JSON::ParserError => e
       raise AttestationDecodeError, "Invalid JSON: #{e.message}"

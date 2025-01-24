@@ -39,6 +39,7 @@ describe U2F do
     let(:counter) { registration.counter }
     let(:reg_public_key) { registration.public_key }
     let(:u2f_authenticate) do
+
       u2f.authenticate!(sign_response, reg_public_key, counter) do |c|
         expect(c).to eq(sign_response.client_data.challenge)
         auth_challenge

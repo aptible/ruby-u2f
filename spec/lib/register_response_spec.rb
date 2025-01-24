@@ -93,6 +93,13 @@ describe U2F::RegisterResponse do
   context 'instantiated via #from_hash' do
     let(:register_response) do
       U2F::RegisterResponse.from_hash(JSON.parse registration_data_json)
+    end
+    include_examples 'register response examples'
+  end
+
+  context 'instantiated via #from_hash' do
+    let(:register_response) do
+      U2F::RegisterResponse.from_hash(JSON.parse registration_data_json)
   end
   include_examples 'register response examples'
 end
