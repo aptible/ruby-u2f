@@ -24,7 +24,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.RUBY_VERSION }}
-          bundler: 2.4.22
+          bundler: 2.3.27
 
       - name: Bundle install
         run: bundle install
